@@ -1,0 +1,31 @@
+from mpi4py import MPI
+import random
+import time
+
+def monte_carlo_pi(n):
+    count_in_circle = 0
+    for i in range(n):
+        x = random.uniform(0,1)
+        y = random.uniform(0,1)
+        if x*x + y*y <= 1:
+            count_in_circle += 1
+    return count_in_circle
+
+comm = MPI.COMM_WORLD
+rank = comm.Get_rank()
+size = comm.Get_size()
+print(size)
+n = int(input("Enter the number of points: "))
+points_per_process = n // size
+
+start_time = time.time()
+local_count = monte_carlo_pi(points_per_process)
+elapsed_time = time.time() - start_time
+
+global_count = comm.reduce(local_count, op=MPI.SUM, root=0)
+global_time = comm.reduce(elapsed_time, op=MPI.MAX, root=0)
+
+if rank == 0:
+    pi = 4 * global_count / n
+    print("Estimated value of Pi: ", pi)
+    print("Time taken to calculate: ", global_time)
